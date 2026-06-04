@@ -1,0 +1,24 @@
+{
+  "name": "s3-lambda-step-function-sharepoint-enterprise",
+  "version": "0.1.0",
+  "private": true,
+  "bin": {
+    "s3-sharepoint-workflow": "bin/app.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "synth": "cdk synth",
+    "test": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.29",
+    "aws-cdk": "^2.193.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.193.0",
+    "constructs": "^10.4.2",
+    "source-map-support": "^0.5.21"
+  }
+}
