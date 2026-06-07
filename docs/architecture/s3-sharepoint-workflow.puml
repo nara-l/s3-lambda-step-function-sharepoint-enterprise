@@ -1,0 +1,67 @@
+@startuml
+!define AWSPuml https://raw.githubusercontent.com/awslabs/aws-icons-for-plantuml/v23.0/dist
+!include AWSPuml/AWSCommon.puml
+!include AWSPuml/NetworkingContentDelivery/APIGateway.puml
+!include AWSPuml/Compute/Lambda.puml
+!include AWSPuml/Storage/SimpleStorageService.puml
+!include AWSPuml/ApplicationIntegration/StepFunctions.puml
+!include AWSPuml/Database/DynamoDB.puml
+!include AWSPuml/ManagementGovernance/CloudWatch.puml
+
+scale 0.8
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam linetype ortho
+skinparam actorStyle awesome
+left to right direction
+
+actor "User / Admin" as User
+
+rectangle "Upload Layer" {
+  APIGateway(api, "Upload Portal", "API Gateway")
+  Lambda(portalLambda, "Upload Lambda", "presigned URL")
+}
+
+SimpleStorageService(s3, "Private Source Bucket", "S3")
+Lambda(trigger, "S3 Event Handler", "starts workflow")
+
+rectangle "Step Functions: Document Workflow" as Workflow {
+  StepFunctions(sfn, "Document Workflow", "orchestrates workers")
+
+  Lambda(validate, "Validate Document", "")
+  Lambda(route, "Resolve Destination", "")
+  Lambda(upload, "Simulate SharePoint Upload", "")
+  Lambda(failed, "Mark Workflow Failed", "")
+
+  validate -[#2E7D32]-> route : valid
+  route -[#2E7D32]-> upload : routed
+
+  validate .[#B71C1C].> failed : validation error
+  route .[#B71C1C].> failed : routing error
+  upload .[#B71C1C].> failed : upload error
+}
+
+rectangle "Future SharePoint /\nMicrosoft Graph API" as sharepoint
+DynamoDB(ddb, "Document State", "DynamoDB")
+CloudWatch(logs, "Lambda Logs", "CloudWatch")
+
+User --> api : upload file
+api --> portalLambda : request URL
+portalLambda --> s3 : presigned PUT
+s3 --> trigger : ObjectCreated
+trigger --> sfn : StartExecution
+sfn --> validate
+upload -[#2E7D32]-> sharepoint : simulated success
+
+Workflow --> ddb : state updates
+Workflow --> logs : structured logs
+
+legend bottom
+|= Marker |= Meaning |
+| <color:#2E7D32>Green</color> | Success path |
+| <color:#B71C1C>Red dashed</color> | Failure path |
+| DynamoDB | Current document state |
+| CloudWatch | Lambda logs |
+endlegend
+
+@enduml

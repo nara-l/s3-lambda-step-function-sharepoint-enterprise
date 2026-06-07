@@ -15,6 +15,20 @@ An actor or upstream system uploads a document to S3. That upload can trigger a 
 
 DynamoDB stores the lifecycle state for each document so we can answer: what happened, where did it fail, when did it fail, and whether it can be retried. CloudWatch captures Lambda logs, Step Function execution logs, metrics, and alarms. The system should make one-document flows easy to inspect while still documenting how it would scale to bulk enterprise migration.
 
+## Architecture Diagram
+
+Editable source:
+
+- `docs/architecture/s3-sharepoint-workflow.puml`
+
+Exported images:
+
+- `docs/architecture/architecture-horizontal.png`
+- `docs/architecture/architecture-horizontal-fullscale.png`
+- `docs/architecture/architecture-vertical.png`
+
+Use the horizontal diagram for README and video walkthroughs. It is the clearest view for explaining the user-to-workflow path from left to right.
+
 ## Core Components
 
 - **S3 bucket**: Source location for documents.

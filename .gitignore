@@ -1,5 +1,6 @@
 node_modules/
 cdk.out/
+docs/aws-iac-r.md
 
 *.js
 *.d.ts
