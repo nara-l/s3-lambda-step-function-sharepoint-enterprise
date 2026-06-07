@@ -13,6 +13,7 @@
     "noUnusedParameters": false,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
     "inlineSourceMap": true,
     "inlineSources": true,
     "noEmit": true,
