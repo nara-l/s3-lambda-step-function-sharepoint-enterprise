@@ -107,6 +107,22 @@ Deploy:
 npx cdk deploy --profile s3-sharepoint-learning --require-approval never
 ```
 
+## Live Demo
+
+A temporary deployed demo is available here:
+
+https://0pxnu0ijm5.execute-api.us-east-1.amazonaws.com/prod/
+
+Use a small supported file type:
+
+```text
+.pdf, .docx, .xlsx, .csv, .txt
+```
+
+The demo uploads to a private S3 bucket through a short-lived presigned POST, then starts the Step Functions workflow. Uploaded files are limited to 5 MB and expire from the bucket after 1 day.
+
+Note: this is a learning/demo deployment and may be disabled after review.
+
 ## Demo Test
 
 Use the deployed upload portal URL from the CDK stack output:
