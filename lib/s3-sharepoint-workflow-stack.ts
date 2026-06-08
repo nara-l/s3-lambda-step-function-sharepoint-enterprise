@@ -29,6 +29,7 @@ export class S3SharePointWorkflowStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
+    // Storage and state: S3 holds source documents, DynamoDB tracks workflow status.
     const sourceBucket = new Bucket(this, 'SourceDocumentBucket', {
       blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
       cors: [
@@ -63,6 +64,7 @@ export class S3SharePointWorkflowStack extends Stack {
       removalPolicy: RemovalPolicy.DESTROY,
     });
 
+    // Worker Lambdas: each function owns one workflow step.
     const validateDocumentFunction = new NodejsFunction(
       this,
       'ValidateDocumentFunction',
@@ -115,6 +117,7 @@ export class S3SharePointWorkflowStack extends Stack {
       },
     );
 
+    // Upload portal: a small API that serves the page and creates presigned S3 POSTs.
     const uploadPortalFunction = new NodejsFunction(this, 'UploadPortalFunction', {
       runtime: Runtime.NODEJS_20_X,
       entry: 'lambda/upload-portal.ts',
@@ -137,6 +140,7 @@ export class S3SharePointWorkflowStack extends Stack {
       .addResource('upload-url')
       .addMethod('POST', uploadPortalIntegration);
 
+    // Step Functions tasks: invoke worker Lambdas and pass only each Lambda payload forward.
     const validateDocumentTask = new LambdaInvoke(this, 'Validate Document', {
       lambdaFunction: validateDocumentFunction,
       outputPath: '$.Payload',
@@ -167,6 +171,8 @@ export class S3SharePointWorkflowStack extends Stack {
 
     const workflowFailed = new Fail(this, 'Workflow Failed');
     const failurePath = markWorkflowFailedTask.next(workflowFailed);
+
+    // Retry only transient Lambda platform errors; business errors go to catch/failure.
     const lambdaTransientErrors = [
       'Lambda.ServiceException',
       'Lambda.AWSLambdaException',
@@ -191,6 +197,7 @@ export class S3SharePointWorkflowStack extends Stack {
       });
     });
 
+    // Workflow order: validate, route, then simulate SharePoint upload.
     const documentWorkflowStateMachine = new StateMachine(
       this,
       'DocumentWorkflowStateMachine',
@@ -203,6 +210,7 @@ export class S3SharePointWorkflowStack extends Stack {
       },
     );
 
+    // S3 event handler: receives ObjectCreated events and starts the state machine.
     const s3EventHandler = new NodejsFunction(this, 'S3EventHandler', {
       runtime: Runtime.NODEJS_20_X,
       entry: 'lambda/s3-event-handler.ts',
@@ -213,6 +221,7 @@ export class S3SharePointWorkflowStack extends Stack {
       },
     });
 
+    // Permissions: grant only the access each runtime component needs.
     documentWorkflowTable.grantReadWriteData(s3EventHandler);
     documentWorkflowTable.grantReadWriteData(validateDocumentFunction);
     documentWorkflowTable.grantReadWriteData(resolveDestinationFunction);
@@ -222,11 +231,13 @@ export class S3SharePointWorkflowStack extends Stack {
 
     documentWorkflowStateMachine.grantStartExecution(s3EventHandler);
 
+    // Event source: new S3 objects trigger the S3 event handler Lambda.
     sourceBucket.addEventNotification(
       EventType.OBJECT_CREATED,
       new LambdaDestination(s3EventHandler),
     );
 
+    // Stack outputs: useful values after deploy.
     new CfnOutput(this, 'SourceDocumentBucketName', {
       value: sourceBucket.bucketName,
       description: 'S3 bucket where source documents are uploaded.',
