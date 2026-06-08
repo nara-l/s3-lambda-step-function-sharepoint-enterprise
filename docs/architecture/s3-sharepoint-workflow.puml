@@ -47,7 +47,7 @@ CloudWatch(logs, "Lambda Logs", "CloudWatch")
 
 User --> api : upload file
 api --> portalLambda : request URL
-portalLambda --> s3 : presigned PUT
+portalLambda --> s3 : presigned POST
 s3 --> trigger : ObjectCreated
 trigger --> sfn : StartExecution
 sfn --> validate

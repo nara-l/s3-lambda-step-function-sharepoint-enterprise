@@ -16,7 +16,7 @@ Real SharePoint integration is intentionally out of scope for the first version.
 
 ```text
 Upload Portal
-  -> presigned S3 PUT URL
+  -> presigned S3 POST
   -> private S3 bucket
   -> S3 ObjectCreated event
   -> S3 Event Handler Lambda
@@ -143,9 +143,9 @@ Step Functions execution ends failed
 
 ## Notes On Presigned URLs
 
-The S3 bucket remains private. The upload portal creates a short-lived presigned URL that allows one browser upload to one specific S3 key.
+The S3 bucket remains private. The upload portal creates a short-lived presigned POST that allows one browser upload to one specific S3 key.
 
-The URL does not allow listing, reading, deleting, or changing other objects.
+The POST policy does not allow listing, reading, deleting, or changing other objects. It also limits demo uploads to 5 MB.
 
 ## Enterprise Extensions
 

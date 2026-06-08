@@ -34,12 +34,18 @@ export class S3SharePointWorkflowStack extends Stack {
       cors: [
         {
           allowedHeaders: ['*'],
-          allowedMethods: [HttpMethods.PUT],
+          allowedMethods: [HttpMethods.POST],
           allowedOrigins: ['*'],
         },
       ],
       encryption: BucketEncryption.S3_MANAGED,
       enforceSSL: true,
+      lifecycleRules: [
+        {
+          expiration: Duration.days(1),
+          abortIncompleteMultipartUploadAfter: Duration.days(1),
+        },
+      ],
       versioned: true,
       removalPolicy: RemovalPolicy.DESTROY,
     });

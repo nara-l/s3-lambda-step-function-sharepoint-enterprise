@@ -93,7 +93,7 @@ Goal: prove we can debug the system.
 ### Milestone 7: Minimal Upload Portal
 
 - [x] Add API Gateway upload portal
-- [x] Add Lambda that creates presigned S3 upload URLs
+- [x] Add Lambda that creates presigned S3 POST uploads
 - [x] Browser uploads directly to private source bucket
 - [x] Uploaded file still triggers existing S3 workflow
 - [x] Deploy and verify portal URL
@@ -121,7 +121,7 @@ Simplest version:
 
 ```text
 local HTML page
-  -> presigned S3 upload URL or backend helper
+  -> presigned S3 POST or backend helper
   -> upload file to S3
   -> workflow starts
 ```

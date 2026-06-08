@@ -1,10 +1,11 @@
 import { APIGatewayProxyHandler } from 'aws-lambda';
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { S3Client } from '@aws-sdk/client-s3';
+import { createPresignedPost } from '@aws-sdk/s3-presigned-post';
 import { logInfo } from './shared/logger';
 
 const s3 = new S3Client({});
 const bucketName = process.env.BUCKET_NAME;
+const maxUploadBytes = 5 * 1024 * 1024;
 const allowedExtensions = ['.pdf', '.docx', '.xlsx', '.csv', '.txt'];
 const allowedDepartments = ['finance', 'legal', 'general'];
 
@@ -57,7 +58,7 @@ function renderPage(): string {
 <body>
   <h1>S3 SharePoint Workflow Upload</h1>
   <p>Upload a document into S3. The existing Lambda and Step Functions workflow will validate, route, track, and simulate the SharePoint upload.</p>
-  <p>Supported demo files: PDF, DOCX, XLSX, CSV, and TXT.</p>
+  <p>Supported demo files: PDF, DOCX, XLSX, CSV, and TXT. Max size: 5 MB.</p>
 
   <form id="uploadForm">
     <label for="department">Department</label>
@@ -86,6 +87,10 @@ function renderPage(): string {
       const department = document.getElementById('department').value;
 
       if (!file) return;
+      if (file.size > ${maxUploadBytes}) {
+        statusBox.textContent = 'Upload failed.\\n\\nFile is larger than 5 MB.';
+        return;
+      }
 
       button.disabled = true;
       statusBox.textContent = 'Creating upload URL...';
@@ -109,10 +114,15 @@ function renderPage(): string {
         const upload = await urlResponse.json();
         statusBox.textContent = 'Uploading to S3...';
 
-        const s3Response = await fetch(upload.uploadUrl, {
-          method: 'PUT',
-          headers: { 'Content-Type': file.type || 'application/octet-stream' },
-          body: file
+        const formData = new FormData();
+        Object.entries(upload.fields).forEach(([key, value]) => {
+          formData.append(key, value);
+        });
+        formData.append('file', file);
+
+        const s3Response = await fetch(upload.url, {
+          method: 'POST',
+          body: formData
         });
 
         if (!s3Response.ok) {
@@ -163,17 +173,20 @@ export const handler: APIGatewayProxyHandler = async (event) => {
 
   const key = `${department}/${Date.now()}-${safeFileName(fileName)}`;
   const contentType = request.contentType || 'application/octet-stream';
-  const uploadUrl = await getSignedUrl(
-    s3,
-    new PutObjectCommand({
-      Bucket: bucketName,
-      Key: key,
-      ContentType: contentType,
-    }),
-    { expiresIn: 300 },
-  );
+  const upload = await createPresignedPost(s3, {
+    Bucket: bucketName,
+    Key: key,
+    Conditions: [
+      ['content-length-range', 1, maxUploadBytes],
+      ['eq', '$Content-Type', contentType],
+    ],
+    Fields: {
+      'Content-Type': contentType,
+    },
+    Expires: 300,
+  });
 
-  logInfo('Created presigned upload URL.', {
+  logInfo('Created presigned POST upload.', {
     s3Bucket: bucketName,
     s3Key: key,
     department,
@@ -184,7 +197,9 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     JSON.stringify({
       bucket: bucketName,
       key,
-      uploadUrl,
+      url: upload.url,
+      fields: upload.fields,
+      maxUploadBytes,
       expiresInSeconds: 300,
     }),
   );

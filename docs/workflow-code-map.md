@@ -26,7 +26,7 @@ Upload portal path:
 ```text
 Browser page
   -> API Gateway
-  -> UploadPortal Lambda creates presigned S3 URL
+  -> UploadPortal Lambda creates presigned S3 POST
   -> Browser uploads file directly to S3
   -> Existing S3 workflow starts
 ```
@@ -92,8 +92,8 @@ Current behavior:
 
 ```text
 GET / -> returns small upload page
-POST /upload-url -> returns presigned S3 PUT URL
-Browser PUT -> uploads file to private source bucket
+POST /upload-url -> returns presigned S3 POST fields
+Browser POST -> uploads file to private source bucket
 ```
 
 CDK wiring:
